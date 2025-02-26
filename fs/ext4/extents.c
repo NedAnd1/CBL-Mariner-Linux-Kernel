@@ -4578,6 +4578,9 @@ static long ext4_zero_range(struct file *file, loff_t offset,
 	}
 
 	flags = EXT4_GET_BLOCKS_CREATE_UNWRIT_EXT;
+	if (mode & FALLOC_FL_EXPLICIT_ZEROES) {
+		flags = EXT4_GET_BLOCKS_CREATE_ZERO;
+	}
 
 	/* Wait all existing dio workers, newcomers will block on i_mutex */
 	inode_dio_wait(inode);
@@ -4598,8 +4601,13 @@ static long ext4_zero_range(struct file *file, loff_t offset,
 
 	}
 
-	/* Zero range excluding the unaligned edges */
-	if (max_blocks > 0) {
+	/* 
+	 * Zero range excluding the unaligned edges.
+	 *
+	 * No need to do this on newly zeroed extents
+	 * allocated via EXT4_GET_BLOCKS_CREATE_ZERO.
+	 */
+	if (max_blocks > 0 && flags != EXT4_GET_BLOCKS_CREATE_ZERO) {
 		flags |= (EXT4_GET_BLOCKS_CONVERT_UNWRITTEN |
 			  EXT4_EX_NOCACHE);
 
@@ -4698,7 +4706,7 @@ long ext4_fallocate(struct file *file, int mode, loff_t offset, loff_t len)
 	/* Return error if mode is not supported */
 	if (mode & ~(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE |
 		     FALLOC_FL_COLLAPSE_RANGE | FALLOC_FL_ZERO_RANGE |
-		     FALLOC_FL_INSERT_RANGE))
+		     FALLOC_FL_INSERT_RANGE | FALLOC_FL_EXPLICIT_ZEROES))
 		return -EOPNOTSUPP;
 
 	inode_lock(inode);
