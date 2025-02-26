@@ -867,7 +867,9 @@ xfs_alloc_file_space(
 		if (error)
 			goto error;
 
-		ip->i_diflags |= XFS_DIFLAG_PREALLOC;
+		if (alloc_type & XFS_BMAPI_PREALLOC) {
+			ip->i_diflags |= XFS_DIFLAG_PREALLOC;
+		}
 		xfs_trans_log_inode(tp, ip, XFS_ILOG_CORE);
 
 		error = xfs_trans_commit(tp);

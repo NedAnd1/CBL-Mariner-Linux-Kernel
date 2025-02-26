@@ -897,7 +897,8 @@ xfs_break_layouts(
 #define	XFS_FALLOC_FL_SUPPORTED						\
 		(FALLOC_FL_KEEP_SIZE | FALLOC_FL_PUNCH_HOLE |		\
 		 FALLOC_FL_COLLAPSE_RANGE | FALLOC_FL_ZERO_RANGE |	\
-		 FALLOC_FL_INSERT_RANGE | FALLOC_FL_UNSHARE_RANGE)
+		 FALLOC_FL_INSERT_RANGE | FALLOC_FL_UNSHARE_RANGE |	\
+		 FALLOC_FL_EXPLICIT_ZEROES)
 
 STATIC long
 xfs_file_fallocate(
@@ -912,6 +913,7 @@ xfs_file_fallocate(
 	uint			iolock = XFS_IOLOCK_EXCL | XFS_MMAPLOCK_EXCL;
 	loff_t			new_size = 0;
 	bool			do_file_insert = false;
+	int			alloc_type = XFS_BMAPI_PREALLOC;
 
 	if (!S_ISREG(inode->i_mode))
 		return -EINVAL;
@@ -1035,6 +1037,9 @@ xfs_file_fallocate(
 			len = round_up(offset + len, blksize) -
 			      round_down(offset, blksize);
 			offset = round_down(offset, blksize);
+			if (mode & FALLOC_FL_EXPLICIT_ZEROES) {
+				alloc_type = XFS_BMAPI_ZERO;
+			}
 		} else if (mode & FALLOC_FL_UNSHARE_RANGE) {
 			error = xfs_reflink_unshare(ip, offset, len);
 			if (error)
@@ -1050,9 +1055,9 @@ xfs_file_fallocate(
 			}
 		}
 
-		if (!xfs_is_always_cow_inode(ip)) {
+		if (!(alloc_type & XFS_BMAPI_PREALLOC) || !xfs_is_always_cow_inode(ip)) {
 			error = xfs_alloc_file_space(ip, offset, len,
-						     XFS_BMAPI_PREALLOC);
+						     alloc_type);
 			if (error)
 				goto out_unlock;
 		}
