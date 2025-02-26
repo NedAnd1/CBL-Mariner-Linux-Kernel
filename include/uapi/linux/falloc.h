@@ -39,6 +39,10 @@
  * This can be also used to preallocate blocks past EOF in the same way as
  * with fallocate. Flag FALLOC_FL_KEEP_SIZE should cause the inode
  * size to remain the same.
+ *
+ * This can be also used to write explicit zeroes to the file range
+ * with the flag FALLOC_FL_EXPLICIT_ZEROES which causes any unwritten extents
+ * to be converted into explictly zeroed written extents.
  */
 #define FALLOC_FL_ZERO_RANGE		0x10
 
@@ -76,5 +80,15 @@
  * insert range modes.
  */
 #define FALLOC_FL_UNSHARE_RANGE		0x40
+
+/*
+ * FALLOC_FL_EXPLICIT_ZEROES is used to make FALLOC_FL_ZERO_RANGE
+ * convert any unwritten extents in the range into explicitly zeroed
+ * written extents with any preexisting written extents in the range
+ * overwitten with explicit zeroes.
+ *
+ * Zeroes are issued to the underlying device preferably using hardware offload.
+ */
+#define FALLOC_FL_EXPLICIT_ZEROES	0x80
 
 #endif /* _UAPI_FALLOC_H_ */
